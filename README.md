@@ -27,6 +27,3 @@ npm run dev
 
 ## Wanna Help?
 Found a bug? Have an idea? Open an issue or send a PR! I'm always looking to improve this.
-
-## Get in Touch
-Hit me up at your.email@example.com with questions or just to say hi!
