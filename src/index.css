@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom slider styles */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-track {
+  background: #475569;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  background: #06b6d4;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #0891b2;
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-track {
+  background: #475569;
+  height: 8px;
+  border-radius: 4px;
+  border: none;
+}
+
+.slider::-moz-range-thumb {
+  background: #06b6d4;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #0891b2;
+  transform: scale(1.1);
+}
+
+/* Apply Poppins to headings and important text */
+h1, h2, h3, h4, h5, h6,
+.font-heading,
+.font-bold,
+.font-semibold,
+.font-medium {
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Apply Poppins to body text and UI elements */
+body,
+p, span, div, button, input, textarea, select,
+.font-body,
+.font-ui {
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Ensure mono fonts stay mono for code/data */
+.font-mono,
+code, pre {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
