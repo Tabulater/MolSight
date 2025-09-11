@@ -200,6 +200,36 @@ const NGLProteinViewer: React.FC<NGLProteinViewerProps> = ({
     }
   }, []);
 
+  // Helper function to fetch PDB data with retry logic
+  const fetchPdbData = async (pdbId: string, retries = 3, delay = 1000): Promise<string> => {
+    const urls = [
+      `https://files.rcsb.org/download/${pdbId.toUpperCase()}.pdb`,
+      `https://www.ebi.ac.uk/pdbe/entry-files/pdb${pdbId.toLowerCase()}.ent`,
+      `https://models.rcsb.org/v1/${pdbId.toLowerCase()}/full?encoding=mmcif&copy_all_categories=false`
+    ];
+
+    for (let i = 0; i < urls.length; i++) {
+      for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+          const response = await fetch(urls[i], { 
+            method: 'GET',
+            headers: { 'Accept': 'application/octet-stream' }
+          });
+          
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          
+          const blob = await response.blob();
+          return await blob.text();
+        } catch (error) {
+          console.warn(`Attempt ${attempt} failed for ${urls[i]}:`, error);
+          if (attempt === retries) continue; // Move to next URL if all retries failed
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        }
+      }
+    }
+    throw new Error('All PDB download attempts failed');
+  };
+
   // Load protein structure from PDB
   const loadProteinStructure = useCallback(async (pdbId: string) => {
     if (!stageRef.current || !pdbId) {
@@ -225,36 +255,65 @@ const NGLProteinViewer: React.FC<NGLProteinViewerProps> = ({
         setLoadingProgress(prev => Math.min(prev + 10, 90));
       }, 200);
 
-      // Load structure from RCSB PDB
-      const pdbUrl = `https://files.rcsb.org/download/${pdbId.toUpperCase()}.pdb`;
-      console.log(`Loading from URL: ${pdbUrl}`);
-      
-      const component = await stageRef.current.loadFile(pdbUrl, {
-        ext: 'pdb',
-        defaultRepresentation: false
-      });
+      try {
+        // First try to load directly from RCSB (faster if it works)
+        const pdbUrl = `https://files.rcsb.org/download/${pdbId.toUpperCase()}.pdb`;
+        console.log(`Attempting direct load from: ${pdbUrl}`);
+        
+        const component = await stageRef.current.loadFile(pdbUrl, {
+          ext: 'pdb',
+          defaultRepresentation: false
+        });
+        
+        console.log('Protein structure loaded successfully via direct download');
+        handleSuccessfulLoad(component);
+      } catch (directError) {
+        console.warn('Direct load failed, trying alternative methods...', directError);
+        
+        // If direct load fails, try fetching the data first
+        const pdbData = await fetchPdbData(pdbId);
+        
+        // Create a Blob and Object URL
+        const blob = new Blob([pdbData], { type: 'text/plain' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        try {
+          const component = await stageRef.current.loadFile(blobUrl, {
+            ext: 'pdb',
+            defaultRepresentation: false
+          });
+          
+          console.log('Protein structure loaded successfully via blob');
+          handleSuccessfulLoad(component);
+        } finally {
+          // Clean up the blob URL
+          URL.revokeObjectURL(blobUrl);
+        }
+      }
 
-      console.log('Protein structure loaded successfully');
-      clearInterval(progressInterval);
-      setLoadingProgress(100);
-
-      componentRef.current = component;
-      window.nglComponent = component; // Make component globally accessible for settings
-
-      // Apply initial representation based on view mode
-      applyRepresentation(component, viewMode);
-
-      // Auto-view the structure with animation
-      component.autoView(1000);
-
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 500);
+      function handleSuccessfulLoad(component: any) {
+        clearInterval(progressInterval);
+        setLoadingProgress(100);
+        
+        componentRef.current = component;
+        window.nglComponent = component;
+        
+        // Apply initial representation based on view mode
+        applyRepresentation(component, viewMode);
+        
+        // Auto-view the structure with animation
+        component.autoView(1000);
+        
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 500);
+      }
 
     } catch (err) {
       console.error('Failed to load protein structure:', err);
-      setError(`Failed to load protein ${pdbId.toUpperCase()}. The structure may not exist or there may be a network issue.`);
+      setError(`Failed to load protein ${pdbId.toUpperCase()}. The structure may not exist or there may be a network issue. Error: ${err.message}`);
       setIsLoading(false);
+      setLoadingProgress(0);
     }
   }, [viewMode, fetchProteinInfo]);
 
